@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goethe Grammatik Master V6</title>
+    <style>
+        :root {
+            --goethe-blue: #005aa3;
+            --goethe-red: #e3001b;
+            --goethe-green: #008939;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --card-bg: white;
+            --drill-color: #d63384; /* Pink for Drill Mode */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #222;
+            color: white;
+            width: 100%;
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; }
+        
+        .nav-buttons {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:active { transform: translateY(1px); }
+
+        .btn-mode { background-color: #444; color: #ccc; }
+        .btn-mode.active { background-color: white; color: #222; box-shadow: 0 2px 8px rgba(255,255,255,0.3); }
+
+        /* DRILL MODE UI */
+        .drill-overlay {
+            background-color: var(--drill-color);
+            color: white;
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+        .drill-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            border: 2px solid white;
+        }
+        .dot.filled { background: white; }
+
+        /* CONTAINER */
+        #game-container {
+            flex: 1;
+            width: 100%;
+            max-width: 700px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .mode-section { width: 100%; display: none; animation: fadeIn 0.3s ease-in-out; }
+        .mode-section.active-view { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* STATS & CARDS */
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            background: #fff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-weight: bold;
+            color: #555;
+            box-sizing: border-box;
+        }
+
+        .card-display {
+            background: var(--card-bg);
+            padding: 40px 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            transition: border 0.2s;
+        }
+        
+        .card-display.drill-active {
+            border: 3px solid var(--drill-color);
+            background: #fff5f9;
+        }
+
+        .main-text { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
+        .sub-text { color: #888; font-size: 1rem; font-style: italic; }
+
+        /* GENDER CONTROLS */
+        .grid-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; width: 100%; }
+        .control-btn { padding: 25px 10px; color: white; font-size: 1.1rem; border-radius: 12px; position: relative; }
+        .btn-der { background-color: var(--goethe-blue); }
+        .btn-das { background-color: var(--goethe-green); }
+        .btn-die { background-color: var(--goethe-red); }
+        .key-hint { display: block; font-size: 0.75rem; opacity: 0.8; margin-top: 5px; text-transform: uppercase; }
+
+        /* SENTENCE */
+        .drop-zone {
+            min-height: 80px; background: #e9e9e9; border-radius: 15px; margin-bottom: 30px;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 15px; border: 2px dashed #ccc;
+        }
+        .word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .word-piece {
+            background-color: white; border: 1px solid #ddd; padding: 12px 20px; border-radius: 25px;
+            cursor: pointer; font-size: 1.1rem; user-select: none; box-shadow: 0 3px 5px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        .word-piece:hover { transform: translateY(-2px); }
+        .word-piece.used { opacity: 0; pointer-events: none; }
+        .word-piece.correct-pos { background-color: #333; color: white; border-color: #333; }
+        .word-piece.wrong-anim { animation: shake 0.4s; background-color: var(--goethe-red); color: white; }
+
+        /* UTILS */
+        .feedback-correct { background-color: var(--goethe-green) !important; color: white !important; }
+        .feedback-wrong { background-color: var(--goethe-red) !important; color: white !important; animation: shake 0.4s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>GOETHE TRAINER <span style="font-size:0.8rem; opacity:0.7;">v6.0</span></h1>
+    <div class="nav-buttons">
+        <button id="nav-gender" class="btn-mode active" onclick="app.setMode('gender')">Gender Dash</button>
+        <button id="nav-sentence" class="btn-mode" onclick="app.setMode('sentence')">Sentence</button>
+    </div>
+</header>
+
+<div id="drill-bar" class="drill-overlay">
+    <span>PENALTY DRILL: 5x IN A ROW!</span>
+    <div class="drill-dots" id="drill-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+</div>
+
+<div id="game-container">
+
+    <div id="view-gender" class="mode-section active-view">
+        <div class="stats-bar">
+            <span>Score: <span id="gender-score">0</span></span>
+            <span>Streak: <span id="gender-streak">0</span></span>
+        </div>
+        <div class="card-display" id="gender-card">
+            <div class="main-text" id="gender-word">Loading...</div>
+            <div class="sub-text" id="gender-translation">...</div>
+        </div>
+        <div class="grid-controls">
+            <button class="control-btn btn-der" onclick="app.checkGender('der')">DER<span class="key-hint">← Left</span></button>
+            <button class="control-btn btn-das" onclick="app.checkGender('das')">DAS<span class="key-hint">↓ Down</span></button>
+            <button class="control-btn btn-die" onclick="app.checkGender('die')">DIE<span class="key-hint">→ Right</span></button>
+        </div>
+    </div>
+
+    <div id="view-sentence" class="mode-section">
+        <div class="stats-bar"><span>Solved: <span id="sent-score">0</span></span></div>
+        <div style="text-align:center; margin-bottom:10px;"><p style="font-size:1.1rem; color:#555; font-style:italic;" id="sent-translation">...</p></div>
+        <div class="drop-zone" id="sent-dropzone"></div>
+        <div class="word-bank" id="sent-bank"></div>
+        <div style="text-align:center; margin-top:20px;">
+            <button id="btn-next-sent" onclick="app.nextSentence()" style="background:#333; color:white; display:none;">Next Sentence ➝</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// --- HARDCODED DATA FROM YOUR PDFS ---
+const Database = {
+    nouns: [
+        {w:"Beitrag",a:"der",t:"Article"},{w:"Modell",a:"das",t:"Model"},{w:"Familienleben",a:"das",t:"Family Life"},
+        {w:"Sohn",a:"der",t:"Son"},{w:"Onkel",a:"der",t:"Uncle"},{w:"Tante",a:"die",t:"Aunt"},
+        {w:"Single",a:"der",t:"Single person"},{w:"Großmutter",a:"die",t:"Grandmother"},{w:"Großvater",a:"der",t:"Grandfather"},
+        {w:"Bruder",a:"der",t:"Brother"},{w:"Enkel",a:"der",t:"Grandson"},{w:"Enkelin",a:"die",t:"Granddaughter"},
+        {w:"Dorf",a:"das",t:"Village"},{w:"Nationalpark",a:"der",t:"National Park"},{w:"Feriencamp",a:"das",t:"Holiday Camp"},
+        {w:"Redaktion",a:"die",t:"Editorial Dept"},{w:"Babysitter",a:"der",t:"Babysitter"},{w:"Gehalt",a:"das",t:"Salary"},
+        {w:"Interesse",a:"das",t:"Interest"},{w:"Sommerjob",a:"der",t:"Summer Job"},{w:"Zeitung",a:"die",t:"Newspaper"},
+        {w:"Aufgabe",a:"die",t:"Task"},{w:"Text",a:"der",t:"Text"},{w:"Promoter",a:"der",t:"Promoter"},
+        {w:"Start",a:"der",t:"Start"},{w:"Wintersaison",a:"die",t:"Winter Season"},{w:"Skiort",a:"der",t:"Ski Resort"},
+        {w:"Besucher",a:"der",t:"Visitor"},{w:"Unfall",a:"der",t:"Accident"},{w:"Hand",a:"die",t:"Hand"},
+        {w:"Hals",a:"der",t:"Throat"},{w:"Mund",a:"der",t:"Mouth"},{w:"Nase",a:"die",t:"Nose"},{w:"Fuß",a:"der",t:"Foot"},
+        {w:"Bauch",a:"der",t:"Stomach"},{w:"Brust",a:"die",t:"Chest"},{w:"Rücken",a:"der",t:"Back"},
+        {w:"Schulter",a:"die",t:"Shoulder"},{w:"Kopf",a:"der",t:"Head"},{w:"Bein",a:"das",t:"Leg"},{w:"Arm",a:"der",t:"Arm"},
+        {w:"Schmerz",a:"der",t:"Pain"},{w:"Kochbuch",a:"das",t:"Cookbook"},{w:"Schmuck",a:"der",t:"Jewellery"},
+        {w:"Briefumschlag",a:"der",t:"Envelope"},{w:"Müsli",a:"das",t:"Muesli"},{w:"Lebensmittel",a:"das",t:"Groceries"},
+        {w:"Kette",a:"die",t:"Chain (Necklace)"},{w:"Glückwunschkarte",a:"die",t:"Greeting Card"},{w:"Geschenkpapier",a:"das",t:"Wrapping Paper"},
+        {w:"Schokolade",a:"die",t:"Chocolate"},{w:"Ring",a:"der",t:"Ring"},{w:"Valentinstag",a:"der",t:"Valentines Day"},
+        {w:"Wellnesswochenende",a:"das",t:"Spa Weekend"},{w:"Tierpark",a:"der",t:"Zoo"},{w:"Rathaus",a:"das",t:"Town Hall"},
+        {w:"Glockenspiel",a:"das",t:"Carillon"},{w:"Platz",a:"der",t:"Square"},{w:"Biergarten",a:"der",t:"Beer Garden"},
+        {w:"Glocke",a:"die",t:"Bell"},{w:"Sehenswürdigkeit",a:"die",t:"Attraction"},{w:"Plan",a:"der",t:"Plan"},
+        {w:"Laden",a:"der",t:"Shop"},{w:"Baum",a:"der",t:"Tree"},{w:"Haltestelle",a:"die",t:"Stop"},
+        {w:"Flugzeug",a:"das",t:"Airplane"},{w:"Nachtschicht",a:"die",t:"Night Shift"},{w:"Polizist",a:"der",t:"Policeman"},
+        {w:"Briefträger",a:"der",t:"Postman"},{w:"Brief",a:"der",t:"Letter"},{w:"Frühschicht",a:"die",t:"Early Shift"},
+        {w:"Spätschicht",a:"die",t:"Late Shift"},{w:"Qualifikation",a:"die",t:"Qualification"},{w:"Auftrag",a:"der",t:"Order/Job"}
+    ],
+    sentences: [
+        {de:"Das ist mein Großvater", en:"That is my grandfather"},
+        {de:"Wir sind ein super Team", en:"We are a super team"},
+        {de:"Er wohnt in einer WG", en:"He lives in a shared flat"},
+        {de:"Ich arbeite in einem Nationalpark", en:"I work in a national park"},
+        {de:"Ich möchte Journalismus studieren", en:"I want to study journalism"},
+        {de:"Mein Arm tut sehr weh", en:"My arm hurts a lot"},
+        {de:"Wir fahren nach München", en:"We are going to Munich"},
+        {de:"Ich liebe Schokolade", en:"I love chocolate"},
+        {de:"Das war dein erster Schultag", en:"That was your first school day"},
+        {de:"Das war vor 60 Jahren", en:"That was 60 years ago"},
+        {de:"Mit wem sitzt deine Mutter hier", en:"Who is your mother sitting with here"},
+        {de:"Die Pause ist zu Ende", en:"The break is over"},
+        {de:"Dieses Bild ist lustig", en:"This picture is funny"},
+        {de:"Kann ich mit Kreditkarte bezahlen", en:"Can I pay with credit card"},
+        {de:"Sie macht eine Schiffstour", en:"She is taking a boat tour"},
+        {de:"Er ist nach Hamburg gefahren", en:"He drove to Hamburg"},
+        {de:"Hast du lange gewartet", en:"Did you wait long"},
+        {de:"Sie hat eine Ausbildung gemacht", en:"She did an apprenticeship"},
+        {de:"Wann sind Sie geboren", en:"When were you born"},
+        {de:"Ich habe starke Rückenschmerzen", en:"I have severe back pain"},
+        {de:"Halten Sie den Rücken gerade", en:"Keep your back straight"},
+        {de:"Welche Farbe mögen Sie", en:"Which color do you like"},
+        {de:"Das Kleid steht ihr sehr gut", en:"The dress looks very good on her"},
+        {de:"München liegt im Süden", en:"Munich is in the south"},
+        {de:"Wir fahren in die Türkei", en:"We are driving to Turkey"},
+        {de:"Der Koffer ist im Schrank", en:"The suitcase is in the cupboard"},
+        {de:"Ich muss nicht jede Nacht arbeiten", en:"I do not have to work every night"},
+        {de:"Wann fährt der Zug ab", en:"When does the train leave"}
+    ]
+};
+
+const app = {
+    state: {
+        mode: 'gender',
+        score: { gender: 0, sentence: 0 },
+        streak: 0,
+        
+        // DRILL LOGIC
+        inDrill: false,
+        drillCount: 0,
+        drillTarget: 5,
+        
+        currWord: null, currSent: null, currSentBuilt: []
+    },
+
+    init: function() {
+        this.setupKeyboard();
+        this.nextGender();
+    },
+
+    // --- NAVIGATION ---
+    setMode: function(mode) {
+        this.state.mode = mode;
+        this.endDrill(); // Reset drill if switching
+        
+        document.querySelectorAll('.mode-section').forEach(el => el.classList.remove('active-view'));
+        document.getElementById(`view-${mode}`).classList.add('active-view');
+        
+        document.querySelectorAll('.btn-mode').forEach(el => el.classList.remove('active'));
+        document.getElementById(`nav-${mode}`).classList.add('active');
+        
+        if(mode === 'gender') this.nextGender();
+        if(mode === 'sentence') this.nextSentence();
+    },
+
+    // --- DRILL SYSTEM ---
+    startDrill: function() {
+        if(this.state.inDrill) {
+            // If already in drill and failed again, reset counter
+            this.state.drillCount = 0;
+            this.updateDrillUI();
+            return;
+        }
+
+        this.state.inDrill = true;
+        this.state.drillCount = 0;
+        document.getElementById('drill-bar').style.display = 'block';
+        document.getElementById('gender-card').classList.add('drill-active');
+        this.updateDrillUI();
+    },
+
+    progressDrill: function() {
+        this.state.drillCount++;
+        this.updateDrillUI();
+        if(this.state.drillCount >= this.state.drillTarget) {
+            this.endDrill();
+            return true; // Drill finished
+        }
+        return false; // Continue drilling
+    },
+
+    endDrill: function() {
+        this.state.inDrill = false;
+        this.state.drillCount = 0;
+        document.getElementById('drill-bar').style.display = 'none';
+        document.getElementById('gender-card').classList.remove('drill-active');
+    },
+
+    updateDrillUI: function() {
+        const dots = document.querySelectorAll('.dot');
+        dots.forEach((dot, idx) => {
+            if(idx < this.state.drillCount) dot.classList.add('filled');
+            else dot.classList.remove('filled');
+        });
+    },
+
+    // --- GENDER LOGIC ---
+    nextGender: function() {
+        // If in drill, we KEEP the current word. Do not fetch new.
+        if(this.state.inDrill) {
+            this.renderGender(this.state.currWord); // Re-render same word
+            return;
+        }
+
+        const rnd = Math.floor(Math.random() * Database.nouns.length);
+        this.renderGender(Database.nouns[rnd]);
+    },
+    renderGender: function(wordObj) {
+        this.state.currWord = wordObj;
+        const card = document.getElementById('gender-card');
+        card.style.background = 'white'; card.style.color = '#333';
+        document.getElementById('gender-word').innerText = wordObj.w;
+        document.getElementById('gender-translation').innerText = wordObj.t;
+    },
+    checkGender: function(input) {
+        if(!this.state.currWord) return;
+        const correct = this.state.currWord.a;
+        const card = document.getElementById('gender-card');
+
+        if(input === correct) {
+            // Correct handling
+            if(input === 'der') card.style.background = 'var(--goethe-blue)';
+            if(input === 'die') card.style.background = 'var(--goethe-red)';
+            if(input === 'das') card.style.background = 'var(--goethe-green)';
+            card.style.color = 'white';
+
+            if(this.state.inDrill) {
+                // In Penalty Loop
+                const finished = this.progressDrill();
+                if(finished) {
+                     setTimeout(() => this.nextGender(), 600); // Done, get new word
+                } else {
+                     setTimeout(() => this.renderGender(this.state.currWord), 400); // Not done, repeat same word
+                }
+            } else {
+                // Normal Mode
+                this.state.score.gender++;
+                this.state.streak++;
+                document.getElementById('gender-score').innerText = this.state.score.gender;
+                document.getElementById('gender-streak').innerText = this.state.streak;
+                setTimeout(() => this.nextGender(), 400);
+            }
+
+        } else {
+            // Wrong handling
+            this.state.streak = 0; 
+            document.getElementById('gender-streak').innerText = 0;
+            card.style.background = '#333'; card.style.color = 'white';
+            
+            // TRIGGER DRILL
+            this.startDrill();
+
+            setTimeout(() => { 
+                card.style.background = 'white'; card.style.color = '#333'; 
+            }, 600);
+        }
+    },
+
+    // --- SENTENCE LOGIC ---
+    nextSentence: function() {
+        if(this.state.inDrill) {
+            // Re-render same sentence
+            this.renderSentence(this.state.currSent);
+            return;
+        }
+        const rnd = Math.floor(Math.random() * Database.sentences.length);
+        this.renderSentence(Database.sentences[rnd]);
+    },
+    renderSentence: function(sObj) {
+        this.state.currSent = sObj;
+        this.state.currSentBuilt = [];
+        
+        document.getElementById('btn-next-sent').style.display = 'none';
+        document.getElementById('sent-dropzone').innerHTML = '';
+        document.getElementById('sent-translation').innerText = `"${sObj.en}"`;
+        const bank = document.getElementById('sent-bank');
+        bank.innerHTML = '';
+        
+        let parts = sObj.de.split(" ");
+        let shuffled = [...parts];
+        if (parts.length > 1) {
+            shuffled.sort(() => Math.random() - 0.5);
+        }
+
+        shuffled.forEach(word => {
+            const btn = document.createElement('div');
+            btn.className = 'word-piece'; btn.innerText = word;
+            btn.onclick = (e) => this.clickWord(word, e.target);
+            bank.appendChild(btn);
+        });
+    },
+    clickWord: function(word, el) {
+        const targetParts = this.state.currSent.de.split(" ");
+        const nextIndex = this.state.currSentBuilt.length;
+        
+        if(word === targetParts[nextIndex]) {
+            // Correct Word
+            this.state.currSentBuilt.push(word);
+            el.classList.add('used');
+            const block = document.createElement('div');
+            block.className = 'word-piece correct-pos'; block.innerText = word;
+            document.getElementById('sent-dropzone').appendChild(block);
+            
+            // Sentence Complete?
+            if(this.state.currSentBuilt.length === targetParts.length) {
+                if(this.state.inDrill) {
+                    const finished = this.progressDrill();
+                    if(finished) {
+                        document.getElementById('btn-next-sent').style.display = 'inline-block';
+                    } else {
+                        // Reset board for next repetition
+                        setTimeout(() => this.renderSentence(this.state.currSent), 800);
+                    }
+                } else {
+                    this.state.score.sentence++;
+                    document.getElementById('sent-score').innerText = this.state.score.sentence;
+                    document.getElementById('btn-next-sent').style.display = 'inline-block';
+                }
+            }
+        } else {
+            // Wrong Word
+            el.classList.add('wrong-anim');
+            setTimeout(() => el.classList.remove('wrong-anim'), 400);
+            
+            // TRIGGER DRILL
+            if(!this.state.inDrill) {
+                this.startDrill();
+                // Reset board immediately to force restart
+                setTimeout(() => this.renderSentence(this.state.currSent), 600);
+            } else {
+                // Already in drill, but messed up! Reset counter
+                this.state.drillCount = 0;
+                this.updateDrillUI();
+                setTimeout(() => this.renderSentence(this.state.currSent), 600);
+            }
+        }
+    },
+
+    setupKeyboard: function() {
+        document.addEventListener('keydown', (e) => {
+            if(this.state.mode === 'gender') {
+                if(e.key === "ArrowLeft") this.checkGender('der');
+                if(e.key === "ArrowDown") this.checkGender('das');
+                if(e.key === "ArrowRight") this.checkGender('die');
+            }
+        });
+    }
+};
+
+window.onload = () => app.init();
+</script>
+</body>
+</html>

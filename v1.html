@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goethe Grammatik Master</title>
+    <style>
+        :root {
+            --goethe-blue: #005aa3; /* Der (Masculine) */
+            --goethe-red: #e3001b;  /* Die (Feminine) */
+            --goethe-green: #008939; /* Das (Neuter) */
+            --bg-color: #f4f4f4;
+            --text-color: #333;
+            --card-bg: white;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            width: 100%;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; }
+        
+        .nav-buttons {
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .btn-mode { background-color: #ddd; color: #333; }
+        .btn-mode.active { background-color: var(--goethe-blue); color: white; }
+
+        /* GAME CONTAINER */
+        #game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- MODE 1: GENDER DASH --- */
+        #gender-dash {
+            text-align: center;
+            width: 100%;
+            display: none; /* Hidden by default */
+        }
+
+        .word-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            font-size: 3rem;
+            margin-bottom: 30px;
+            transition: background-color 0.2s, color 0.2s;
+            border: 4px solid transparent;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .control-btn {
+            padding: 20px;
+            color: white;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+
+        .btn-der { background-color: var(--goethe-blue); }
+        .btn-das { background-color: var(--goethe-green); }
+        .btn-die { background-color: var(--goethe-red); }
+
+        .key-hint {
+            display: block;
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* FEEDBACK ANIMATION */
+        .flash-blue { background-color: var(--goethe-blue) !important; color: white !important; }
+        .flash-green { background-color: var(--goethe-green) !important; color: white !important; }
+        .flash-red { background-color: var(--goethe-red) !important; color: white !important; }
+        .flash-wrong { background-color: #333 !important; color: white !important; animation: shake 0.4s; }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* --- MODE 2: SENTENCE BUILDER --- */
+        #sentence-builder {
+            width: 100%;
+            display: none;
+            text-align: center;
+        }
+
+        .target-sentence {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .drop-zone {
+            min-height: 60px;
+            border-bottom: 2px solid #ccc;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .word-bank {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .word-piece {
+            background-color: white;
+            border: 2px solid #ccc;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            user-select: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .word-piece.used {
+            opacity: 0.3;
+            pointer-events: none;
+            background-color: #ddd;
+        }
+
+        .word-piece.in-sentence {
+            background-color: var(--goethe-blue);
+            color: white;
+            border-color: var(--goethe-blue);
+        }
+
+        .word-piece.wrong-pos {
+            background-color: var(--goethe-red);
+            color: white;
+        }
+
+        .scoreboard {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Goethe Grammatik Trainer</h1>
+    <div class="nav-buttons">
+        <button id="btn-mode-gender" class="btn-mode active" onclick="switchMode('gender')">Gender Speed</button>
+        <button id="btn-mode-sentence" class="btn-mode" onclick="switchMode('sentence')">Sentence Builder</button>
+    </div>
+</header>
+
+<div id="game-container">
+    
+    <div id="gender-dash">
+        <div class="scoreboard">Score: <span id="score">0</span> | Streak: <span id="streak">0</span></div>
+        <div id="card" class="word-card">Start</div>
+        <div class="controls">
+            <button class="control-btn btn-der" onclick="checkGender('der')">
+                DER<span class="key-hint">← Left</span>
+            </button>
+            <button class="control-btn btn-das" onclick="checkGender('das')">
+                DAS<span class="key-hint">↓ Down</span>
+            </button>
+            <button class="control-btn btn-die" onclick="checkGender('die')">
+                DIE<span class="key-hint">→ Right</span>
+            </button>
+        </div>
+        <p style="margin-top:20px; color:#888; font-size:0.9rem;">Press Arrow Keys for speed!</p>
+    </div>
+
+    <div id="sentence-builder">
+        <div class="scoreboard">Sentences Completed: <span id="sent-score">0</span></div>
+        <div class="target-sentence" id="translation-hint">Translation will appear here</div>
+        <div class="drop-zone" id="sentence-area">
+            </div>
+        <div class="word-bank" id="word-bank">
+            </div>
+        <button onclick="nextSentence()" style="margin-top:20px; background:#333; color:white; display:none;" id="next-sent-btn">Next Sentence</button>
+    </div>
+
+</div>
+
+<script>
+    // --- DATA: A1/A2 VOCABULARY ---
+    const nounList = [
+        // A1 Basics
+        { word: "Apfel", article: "der" },
+        { word: "Buch", article: "das" },
+        { word: "Frau", article: "die" },
+        { word: "Mann", article: "der" },
+        { word: "Kind", article: "das" },
+        { word: "Tisch", article: "der" },
+        { word: "Tür", article: "die" },
+        { word: "Fenster", article: "das" },
+        { word: "Stuhl", article: "der" },
+        { word: "Lampe", article: "die" },
+        { word: "Brot", article: "das" },
+        { word: "Wasser", article: "das" },
+        { word: "Kaffee", article: "der" },
+        { word: "Banane", article: "die" },
+        
+        // A2 / Office / City
+        { word: "Rechnung", article: "die" },  // -ung (fem)
+        { word: "Ausbildung", article: "die" },
+        { word: "Fernseher", article: "der" }, // -er (often masc)
+        { word: "Computer", article: "der" },
+        { word: "Formular", article: "das" },
+        { word: "Termin", article: "der" },
+        { word: "Fahrkarte", article: "die" },
+        { word: "Bahnhof", article: "der" },
+        { word: "Wohnung", article: "die" },
+        { word: "Zimmer", article: "das" },
+        { word: "Schlüssel", article: "der" },
+        { word: "Zeit", article: "die" },
+        { word: "Jahr", article: "das" },
+        { word: "Name", article: "der" },
+        { word: "Adresse", article: "die" },
+        { word: "Land", article: "das" }
+    ];
+
+    const sentenceList = [
+        { de: ["Ich", "komme", "aus", "Deutschland"], en: "I come from Germany" },
+        { de: ["Der", "Mann", "kauft", "einen", "Apfel"], en: "The man buys an apple" },
+        { de: ["Wir", "haben", "keine", "Zeit"], en: "We have no time" },
+        { de: ["Kannst", "du", "mir", "bitte", "helfen"], en: "Can you please help me" },
+        { de: ["Das", "Wetter", "ist", "heute", "schön"], en: "The weather is nice today" },
+        { de: ["Ich", "fahre", "mit", "dem", "Bus"], en: "I go by bus" },
+        { de: ["Sie", "sucht", "ihren", "Schlüssel"], en: "She is looking for her key" },
+        { de: ["Morgen", "habe", "ich", "einen", "Termin"], en: "Tomorrow I have an appointment" }
+    ];
+
+    // --- STATE MANAGEMENT ---
+    let currentMode = 'gender';
+    let currentWordObj = null;
+    let score = 0;
+    let streak = 0;
+    let sentenceScore = 0;
+    
+    // Sentence Game State
+    let currentSentenceObj = null;
+    let builtSentence = [];
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        switchMode('gender');
+        loadNewWord();
+    };
+
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('gender-dash').style.display = (mode === 'gender') ? 'block' : 'none';
+        document.getElementById('sentence-builder').style.display = (mode === 'sentence') ? 'block' : 'none';
+        
+        // Toggle Buttons
+        document.getElementById('btn-mode-gender').className = (mode === 'gender') ? 'btn-mode active' : 'btn-mode';
+        document.getElementById('btn-mode-sentence').className = (mode === 'sentence') ? 'btn-mode active' : 'btn-mode';
+
+        if(mode === 'sentence' && !currentSentenceObj) {
+            loadNewSentence();
+        }
+    }
+
+    // --- GAME 1: GENDER DASH LOGIC ---
+    function loadNewWord() {
+        const randomIndex = Math.floor(Math.random() * nounList.length);
+        currentWordObj = nounList[randomIndex];
+        const card = document.getElementById('card');
+        card.innerText = currentWordObj.word;
+        
+        // Reset styles
+        card.className = 'word-card'; 
+        card.style.backgroundColor = 'white';
+        card.style.color = '#333';
+    }
+
+    function checkGender(selectedGender) {
+        if (!currentWordObj) return;
+
+        const card = document.getElementById('card');
+        const correct = currentWordObj.article === selectedGender;
+
+        if (correct) {
+            score++;
+            streak++;
+            // Color feedback based on correct gender
+            if (selectedGender === 'der') card.classList.add('flash-blue');
+            if (selectedGender === 'die') card.classList.add('flash-red');
+            if (selectedGender === 'das') card.classList.add('flash-green');
+            
+            setTimeout(() => {
+                loadNewWord();
+            }, 300); // Quick transition for speed
+        } else {
+            streak = 0;
+            card.classList.add('flash-wrong');
+            setTimeout(() => {
+                card.classList.remove('flash-wrong');
+            }, 400);
+        }
+
+        document.getElementById('score').innerText = score;
+        document.getElementById('streak').innerText = streak;
+    }
+
+    // KEYBOARD LISTENER
+    document.addEventListener('keydown', (e) => {
+        if (currentMode !== 'gender') return;
+        
+        if (e.key === "ArrowLeft") checkGender('der');
+        if (e.key === "ArrowDown") checkGender('das');
+        if (e.key === "ArrowRight") checkGender('die');
+    });
+
+    // --- GAME 2: SENTENCE BUILDER LOGIC ---
+    function loadNewSentence() {
+        // Pick random sentence
+        currentSentenceObj = sentenceList[Math.floor(Math.random() * sentenceList.length)];
+        builtSentence = [];
+        
+        document.getElementById('translation-hint').innerText = '"' + currentSentenceObj.en + '"';
+        document.getElementById('next-sent-btn').style.display = 'none';
+
+        // Clear areas
+        const area = document.getElementById('sentence-area');
+        const bank = document.getElementById('word-bank');
+        area.innerHTML = '';
+        bank.innerHTML = '';
+
+        // Shuffle words
+        let shuffledWords = [...currentSentenceObj.de];
+        shuffledWords.sort(() => Math.random() - 0.5);
+
+        // Create UI elements
+        shuffledWords.forEach((word, index) => {
+            const el = document.createElement('div');
+            el.className = 'word-piece';
+            el.innerText = word;
+            el.onclick = () => addToSentence(word, el);
+            bank.appendChild(el);
+        });
+    }
+
+    function addToSentence(word, element) {
+        // Check if word is next in sequence
+        const currentStep = builtSentence.length;
+        const expectedWord = currentSentenceObj.de[currentStep];
+
+        if (word === expectedWord) {
+            // Correct
+            builtSentence.push(word);
+            
+            // Move visual style
+            element.classList.add('used');
+            
+            const areaWord = document.createElement('div');
+            areaWord.className = 'word-piece in-sentence';
+            areaWord.innerText = word;
+            document.getElementById('sentence-area').appendChild(areaWord);
+
+            // Check Win
+            if (builtSentence.length === currentSentenceObj.de.length) {
+                sentenceScore++;
+                document.getElementById('sent-score').innerText = sentenceScore;
+                document.getElementById('next-sent-btn').style.display = 'inline-block';
+            }
+
+        } else {
+            // Wrong
+            element.classList.add('wrong-pos');
+            setTimeout(() => {
+                element.classList.remove('wrong-pos');
+            }, 500);
+        }
+    }
+
+    function nextSentence() {
+        loadNewSentence();
+    }
+
+</script>
+
+</body>
+</html>

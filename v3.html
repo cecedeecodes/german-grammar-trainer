@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goethe Grammatik Master V3</title>
+    <style>
+        :root {
+            --goethe-blue: #005aa3; /* Der */
+            --goethe-red: #e3001b;  /* Die */
+            --goethe-green: #008939; /* Das */
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --card-bg: white;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #222;
+            color: white;
+            width: 100%;
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; }
+        
+        .nav-buttons {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:active { transform: translateY(1px); }
+
+        .btn-mode { background-color: #444; color: #ccc; }
+        .btn-mode.active { background-color: white; color: #222; box-shadow: 0 2px 8px rgba(255,255,255,0.3); }
+
+        .btn-review {
+            background-color: var(--goethe-red);
+            color: white;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+        
+        .btn-settings { background-color: #555; color: #ffcc00; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(227, 0, 27, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(227, 0, 27, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(227, 0, 27, 0); }
+        }
+
+        /* CONTAINER */
+        #game-container {
+            flex: 1;
+            width: 100%;
+            max-width: 700px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .mode-section {
+            width: 100%;
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .mode-section.active-view { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* STATS & CARDS */
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            background: #fff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-weight: bold;
+            color: #555;
+            box-sizing: border-box;
+        }
+
+        .card-display {
+            background: var(--card-bg);
+            padding: 40px 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .main-text { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
+        .sub-text { color: #888; font-size: 1rem; font-style: italic; }
+
+        /* GENDER CONTROLS */
+        .grid-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; width: 100%; }
+        .control-btn { padding: 25px 10px; color: white; font-size: 1.1rem; border-radius: 12px; position: relative; }
+        .btn-der { background-color: var(--goethe-blue); }
+        .btn-das { background-color: var(--goethe-green); }
+        .btn-die { background-color: var(--goethe-red); }
+        .key-hint { display: block; font-size: 0.75rem; opacity: 0.8; margin-top: 5px; text-transform: uppercase; }
+
+        /* SENTENCE & CASE STYLES */
+        .drop-zone {
+            min-height: 80px; background: #e9e9e9; border-radius: 15px; margin-bottom: 30px;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 15px; border: 2px dashed #ccc;
+        }
+        .word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .word-piece {
+            background-color: white; border: 1px solid #ddd; padding: 12px 20px; border-radius: 25px;
+            cursor: pointer; font-size: 1.1rem; user-select: none; box-shadow: 0 3px 5px rgba(0,0,0,0.05);
+        }
+        .word-piece.used { opacity: 0; pointer-events: none; }
+        .word-piece.correct-pos { background-color: #333; color: white; border-color: #333; }
+        .word-piece.wrong-anim { animation: shake 0.4s; background-color: var(--goethe-red); color: white; }
+
+        .gap-sentence { font-size: 1.8rem; line-height: 1.5; }
+        .gap-highlight { display: inline-block; min-width: 100px; border-bottom: 3px solid #333; text-align: center; color: var(--goethe-blue); }
+        .case-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .case-btn { background: white; color: #333; border: 2px solid #ddd; padding: 20px; font-size: 1.2rem; border-radius: 10px; }
+
+        /* SETTINGS / IMPORT AREA */
+        #view-settings textarea {
+            width: 100%; height: 150px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-family: monospace;
+        }
+        .import-box { background: white; padding: 20px; border-radius: 15px; text-align: left; }
+        .format-hint { font-size: 0.85rem; color: #666; background: #eee; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+
+        /* UTILS */
+        .feedback-correct { background-color: var(--goethe-green) !important; color: white !important; }
+        .feedback-wrong { background-color: var(--goethe-red) !important; color: white !important; animation: shake 0.4s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>GOETHE TRAINER <span style="font-size:0.8rem; opacity:0.7;">v3.0</span></h1>
+    <div class="nav-buttons">
+        <button id="nav-gender" class="btn-mode active" onclick="app.setMode('gender')">Gender Dash</button>
+        <button id="nav-sentence" class="btn-mode" onclick="app.setMode('sentence')">Sentence</button>
+        <button id="nav-case" class="btn-mode" onclick="app.setMode('case')">Case Attack</button>
+        <button id="nav-review" class="btn-review" onclick="app.startReview()">Review (<span id="mistake-count">0</span>)</button>
+        <button id="nav-settings" class="btn-settings" onclick="app.setMode('settings')">⚙ Import</button>
+    </div>
+</header>
+
+<div id="game-container">
+
+    <div id="view-gender" class="mode-section active-view">
+        <div class="stats-bar">
+            <span>Score: <span id="gender-score">0</span></span>
+            <span>Streak: <span id="gender-streak">0</span></span>
+        </div>
+        <div class="card-display" id="gender-card">
+            <div class="main-text" id="gender-word">Loading...</div>
+            <div class="sub-text" id="gender-translation">...</div>
+        </div>
+        <div class="grid-controls">
+            <button class="control-btn btn-der" onclick="app.checkGender('der')">DER<span class="key-hint">← Left</span></button>
+            <button class="control-btn btn-das" onclick="app.checkGender('das')">DAS<span class="key-hint">↓ Down</span></button>
+            <button class="control-btn btn-die" onclick="app.checkGender('die')">DIE<span class="key-hint">→ Right</span></button>
+        </div>
+    </div>
+
+    <div id="view-sentence" class="mode-section">
+        <div class="stats-bar"><span>Solved: <span id="sent-score">0</span></span></div>
+        <div style="text-align:center; margin-bottom:10px;"><p style="font-size:1.1rem; color:#555; font-style:italic;" id="sent-translation">...</p></div>
+        <div class="drop-zone" id="sent-dropzone"></div>
+        <div class="word-bank" id="sent-bank"></div>
+        <div style="text-align:center; margin-top:20px;">
+            <button id="btn-next-sent" onclick="app.nextSentence()" style="background:#333; color:white; display:none;">Next Sentence ➝</button>
+        </div>
+    </div>
+
+    <div id="view-case" class="mode-section">
+        <div class="stats-bar"><span>Score: <span id="case-score">0</span></span></div>
+        <div class="card-display">
+            <div class="gap-sentence" id="case-sentence">...</div>
+            <div class="sub-text" style="margin-top:15px;">Choose the correct form</div>
+        </div>
+        <div class="case-options" id="case-options"></div>
+    </div>
+
+    <div id="view-settings" class="mode-section">
+        <div class="import-box">
+            <h2>Import Custom Vocabulary</h2>
+            <p>Paste CSV data here to add your own words to Gender Dash.</p>
+            <div class="format-hint">
+                <strong>Format:</strong> Word,Article,Translation<br>
+                <strong>Example:</strong><br>
+                Hund,der,Dog<br>
+                Katze,die,Cat
+            </div>
+            <textarea id="import-area" placeholder="Hund,der,Dog..."></textarea>
+            <div style="margin-top:10px; display:flex; justify-content:space-between;">
+                <button onclick="app.importData()" style="background:var(--goethe-green); color:white;">Save & Import</button>
+                <button onclick="app.clearCustom()" style="background:var(--goethe-red); color:white;">Clear Custom Words</button>
+            </div>
+            <p id="import-status" style="margin-top:10px; font-weight:bold;"></p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const Database = {
+    // Standard Basic Words
+    baseNouns: [
+        { w: "Apfel", a: "der", t: "Apple" }, { w: "Buch", a: "das", t: "Book" }, { w: "Frau", a: "die", t: "Woman" },
+        { w: "Mann", a: "der", t: "Man" }, { w: "Kind", a: "das", t: "Child" }, { w: "Tisch", a: "der", t: "Table" },
+        { w: "Tür", a: "die", t: "Door" }, { w: "Haus", a: "das", t: "House" }
+    ],
+    sentences: [
+        { de: "Ich habe Hunger", en: "I am hungry" },
+        { de: "Wir gehen ins Kino", en: "We are going to the cinema" },
+        { de: "Das Wetter ist schön", en: "The weather is nice" },
+        { de: "Kannst du mir helfen", en: "Can you help me" }
+    ],
+    cases: [
+        { s: "___ Mann ist hier.", ans: "Dieser", opts: ["Dieser", "Diesen", "Diesem", "Dieses"], hint: "Nom" },
+        { s: "Ich sehe ___ Mann.", ans: "diesen", opts: ["dieser", "diesen", "diesem", "dieses"], hint: "Akk" },
+        { s: "Er hilft ___ Kind.", ans: "diesem", opts: ["dieses", "diesen", "diesem", "dieser"], hint: "Dat" }
+    ],
+    // Placeholders for combined data
+    nouns: []
+};
+
+const app = {
+    state: {
+        mode: 'gender',
+        score: { gender: 0, sentence: 0, case: 0 },
+        streak: 0,
+        mistakes: [], 
+        isReviewing: false,
+        reviewQueue: [],
+        currWord: null, currSent: null, currSentBuilt: [], currCase: null
+    },
+
+    init: function() {
+        this.loadMistakes();
+        this.loadCustomData(); // Merge custom words
+        this.updateMistakeButton();
+        this.setupKeyboard();
+        this.nextGender();
+    },
+
+    // --- DATA HANDLING ---
+    loadCustomData: function() {
+        const raw = localStorage.getItem('goetheCustomWords');
+        let customWords = [];
+        if (raw) {
+            try { customWords = JSON.parse(raw); } catch(e) { console.error("Data error"); }
+        }
+        // Combine Base + Custom
+        Database.nouns = [...Database.baseNouns, ...customWords];
+    },
+
+    importData: function() {
+        const text = document.getElementById('import-area').value;
+        const lines = text.split('\n');
+        let addedCount = 0;
+        let newWords = [];
+
+        lines.forEach(line => {
+            // Basic CSV Parse: Word,Article,Trans
+            let parts = line.split(',');
+            if(parts.length >= 2) {
+                let w = parts[0].trim();
+                let a = parts[1].trim().toLowerCase();
+                let t = parts[2] ? parts[2].trim() : "Custom Word";
+                
+                // Validate Article
+                if(['der','die','das'].includes(a)) {
+                    newWords.push({ w: w, a: a, t: t });
+                    addedCount++;
+                }
+            }
+        });
+
+        if(addedCount > 0) {
+            // Save to LocalStorage
+            const existingRaw = localStorage.getItem('goetheCustomWords');
+            let existing = existingRaw ? JSON.parse(existingRaw) : [];
+            let combined = [...existing, ...newWords];
+            localStorage.setItem('goetheCustomWords', JSON.stringify(combined));
+            
+            // Reload
+            this.loadCustomData();
+            document.getElementById('import-status').innerText = `Success! Added ${addedCount} words.`;
+            document.getElementById('import-status').style.color = "green";
+            this.setMode('gender'); // Go back to game
+        } else {
+            document.getElementById('import-status').innerText = "No valid words found. Check format (Word,der,Translation).";
+            document.getElementById('import-status').style.color = "red";
+        }
+    },
+
+    clearCustom: function() {
+        if(confirm("Delete all custom words?")) {
+            localStorage.removeItem('goetheCustomWords');
+            this.loadCustomData();
+            document.getElementById('import-status').innerText = "Custom words deleted.";
+        }
+    },
+
+    // --- NAVIGATION ---
+    setMode: function(mode) {
+        this.state.mode = mode;
+        this.state.isReviewing = false;
+        document.querySelectorAll('.mode-section').forEach(el => el.classList.remove('active-view'));
+        document.getElementById(`view-${mode}`).classList.add('active-view');
+        document.querySelectorAll('.btn-mode').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.btn-settings').forEach(el => el.classList.remove('active'));
+        
+        if(mode === 'settings') {
+            document.getElementById('nav-settings').classList.add('active');
+        } else {
+            document.getElementById(`nav-${mode}`).classList.add('active');
+            if(mode === 'gender') this.nextGender();
+            if(mode === 'sentence') this.nextSentence();
+            if(mode === 'case') this.nextCase();
+        }
+    },
+
+    startReview: function() {
+        if(this.state.mistakes.length === 0) return;
+        this.state.isReviewing = true;
+        this.state.reviewQueue = [...this.state.mistakes];
+        alert(`Review Mode: ${this.state.reviewQueue.length} mistakes to fix.`);
+        this.nextReviewItem();
+    },
+
+    nextReviewItem: function() {
+        if(this.state.reviewQueue.length === 0) {
+            alert("Review Complete!");
+            this.state.isReviewing = false;
+            this.state.mistakes = []; 
+            this.saveMistakes();
+            this.updateMistakeButton();
+            this.setMode('gender');
+            return;
+        }
+        const item = this.state.reviewQueue[0];
+        if(item.type === 'gender') { this.setMode('gender'); this.renderGender(item.data); }
+        else if (item.type === 'case') { this.setMode('case'); this.renderCase(item.data); }
+    },
+
+    // --- MISTAKES ---
+    addMistake: function(type, data) {
+        const exists = this.state.mistakes.some(m => JSON.stringify(m.data) === JSON.stringify(data));
+        if(!exists) {
+            this.state.mistakes.push({ type, data });
+            this.saveMistakes();
+            this.updateMistakeButton();
+        }
+    },
+    saveMistakes: function() { localStorage.setItem('goetheMistakes', JSON.stringify(this.state.mistakes)); },
+    loadMistakes: function() { 
+        const saved = localStorage.getItem('goetheMistakes');
+        if(saved) this.state.mistakes = JSON.parse(saved);
+    },
+    updateMistakeButton: function() {
+        const count = this.state.mistakes.length;
+        const btn = document.getElementById('nav-review');
+        document.getElementById('mistake-count').innerText = count;
+        btn.style.display = count > 0 ? 'inline-block' : 'none';
+    },
+
+    // --- GENDER ---
+    nextGender: function() {
+        if(this.state.isReviewing) return;
+        const rnd = Math.floor(Math.random() * Database.nouns.length);
+        this.renderGender(Database.nouns[rnd]);
+    },
+    renderGender: function(wordObj) {
+        this.state.currWord = wordObj;
+        const card = document.getElementById('gender-card');
+        card.style.background = 'white'; card.style.color = '#333';
+        document.getElementById('gender-word').innerText = wordObj.w;
+        document.getElementById('gender-translation').innerText = wordObj.t;
+    },
+    checkGender: function(input) {
+        if(!this.state.currWord) return;
+        const correct = this.state.currWord.a;
+        const card = document.getElementById('gender-card');
+
+        if(input === correct) {
+            if(input === 'der') card.style.background = 'var(--goethe-blue)';
+            if(input === 'die') card.style.background = 'var(--goethe-red)';
+            if(input === 'das') card.style.background = 'var(--goethe-green)';
+            card.style.color = 'white';
+            this.state.score.gender++; this.state.streak++;
+            document.getElementById('gender-score').innerText = this.state.score.gender;
+            document.getElementById('gender-streak').innerText = this.state.streak;
+
+            if(this.state.isReviewing) {
+                this.state.reviewQueue.shift(); setTimeout(() => this.nextReviewItem(), 600);
+            } else { setTimeout(() => this.nextGender(), 400); }
+        } else {
+            this.state.streak = 0; document.getElementById('gender-streak').innerText = 0;
+            card.style.background = '#333'; card.style.color = 'white';
+            if(!this.state.isReviewing) this.addMistake('gender', this.state.currWord);
+            setTimeout(() => { card.style.background = 'white'; card.style.color = '#333'; }, 600);
+        }
+    },
+
+    // --- SENTENCE ---
+    nextSentence: function() {
+        const rnd = Math.floor(Math.random() * Database.sentences.length);
+        const sObj = Database.sentences[rnd];
+        this.state.currSent = sObj;
+        this.state.currSentBuilt = [];
+        document.getElementById('btn-next-sent').style.display = 'none';
+        document.getElementById('sent-dropzone').innerHTML = '';
+        document.getElementById('sent-translation').innerText = `"${sObj.en}"`;
+        const bank = document.getElementById('sent-bank');
+        bank.innerHTML = '';
+        
+        let parts = sObj.de.split(" ");
+        let shuffled = [...parts];
+        if (parts.length > 1) {
+            let limit = 0;
+            while (JSON.stringify(shuffled) === JSON.stringify(parts) && limit < 10) {
+                shuffled.sort(() => Math.random() - 0.5);
+                limit++;
+            }
+        }
+        shuffled.forEach(word => {
+            const btn = document.createElement('div');
+            btn.className = 'word-piece'; btn.innerText = word;
+            btn.onclick = (e) => this.clickWord(word, e.target);
+            bank.appendChild(btn);
+        });
+    },
+    clickWord: function(word, el) {
+        const targetParts = this.state.currSent.de.split(" ");
+        const nextIndex = this.state.currSentBuilt.length;
+        if(word === targetParts[nextIndex]) {
+            this.state.currSentBuilt.push(word);
+            el.classList.add('used');
+            const block = document.createElement('div');
+            block.className = 'word-piece correct-pos'; block.innerText = word;
+            document.getElementById('sent-dropzone').appendChild(block);
+            if(this.state.currSentBuilt.length === targetParts.length) {
+                this.state.score.sentence++;
+                document.getElementById('sent-score').innerText = this.state.score.sentence;
+                document.getElementById('btn-next-sent').style.display = 'inline-block';
+            }
+        } else {
+            el.classList.add('wrong-anim');
+            setTimeout(() => el.classList.remove('wrong-anim'), 400);
+        }
+    },
+
+    // --- CASE ---
+    nextCase: function() {
+        if(this.state.isReviewing) return;
+        const rnd = Math.floor(Math.random() * Database.cases.length);
+        this.renderCase(Database.cases[rnd]);
+    },
+    renderCase: function(caseObj) {
+        this.state.currCase = caseObj;
+        document.getElementById('case-sentence').innerHTML = caseObj.s.replace('___', '<span class="gap-highlight">___</span>');
+        const container = document.getElementById('case-options');
+        container.innerHTML = '';
+        let opts = [...caseObj.opts].sort(() => Math.random() - 0.5);
+        opts.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'case-btn'; btn.innerText = opt;
+            btn.onclick = () => this.checkCase(opt, btn);
+            container.appendChild(btn);
+        });
+    },
+    checkCase: function(selected, btnElement) {
+        const correct = this.state.currCase.ans;
+        if(selected.toLowerCase() === correct.toLowerCase()) {
+            btnElement.classList.add('feedback-correct');
+            this.state.score.case++; document.getElementById('case-score').innerText = this.state.score.case;
+            document.querySelector('.gap-highlight').innerText = selected;
+            document.querySelector('.gap-highlight').style.color = 'var(--goethe-green)';
+            if(this.state.isReviewing) {
+                this.state.reviewQueue.shift(); setTimeout(() => this.nextReviewItem(), 1000);
+            } else { setTimeout(() => this.nextCase(), 1000); }
+        } else {
+            btnElement.classList.add('feedback-wrong');
+            if(!this.state.isReviewing) this.addMistake('case', this.state.currCase);
+            setTimeout(() => btnElement.classList.remove('feedback-wrong'), 500);
+        }
+    },
+
+    setupKeyboard: function() {
+        document.addEventListener('keydown', (e) => {
+            if(this.state.mode === 'gender') {
+                if(e.key === "ArrowLeft") this.checkGender('der');
+                if(e.key === "ArrowDown") this.checkGender('das');
+                if(e.key === "ArrowRight") this.checkGender('die');
+            }
+        });
+    }
+};
+
+window.onload = () => app.init();
+</script>
+</body>
+</html>
