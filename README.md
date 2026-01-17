@@ -3,16 +3,16 @@
 # Goethe Grammatik Master 🇩🇪
 
 ## 🚀 Play the App
-**[👉 CLICK HERE TO OPEN THE LATEST VERSION (V9)](https://github.com/cecedeecodes/german-grammar-trainer/)**
+**[👉 CLICK HERE TO OPEN THE LATEST VERSION (V9)](https://cecedeecodes.github.io/german-grammar-trainer/)**
 
 ---
 
 ## 📜 Version History
 If you want to test the older development versions, click below:
 
-* **[Version 8 (Case Attack Added)](https://github.com/cecedeecodes/german-grammar-trainer/v8.html)**
-* **[Version 6 (Drill Sergeant Mode)](https://github.com/cecedeecodes/german-grammar-trainer/v6.html)**
-* **[Version 1 (Basic Gender Dash)](https://github.com/cecedeecodes/german-grammar-trainer/v1.html)**
+* **[Version 8 (Case Attack Added)](https://cecedeecodes.github.io/german-grammar-trainer/v8.html)**
+* **[Version 6 (Drill Sergeant Mode)](https://cecedeecodes.github.io/german-grammar-trainer/v6.html)**
+* **[Version 1 (Basic Gender Dash)](https://cecedeecodes.github.io/german-grammar-trainer/v1.html)**
 
 *(Note: If you get a 404 error, make sure the filenames above match exactly what you uploaded!)*
 
